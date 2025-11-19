@@ -1,0 +1,150 @@
+{
+  "index_patterns": ["hp_ti_logs-*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 3,
+      "number_of_replicas": 1,
+      "refresh_interval": "30s",
+      "index.lifecycle.name": "hp_ti_logs_policy",
+      "index.lifecycle.rollover_alias": "hp_ti_logs",
+      "codec": "best_compression",
+      "max_result_window": 10000,
+      "analysis": {
+        "analyzer": {
+          "lowercase_analyzer": {
+            "type": "custom",
+            "tokenizer": "keyword",
+            "filter": ["lowercase"]
+          }
+        }
+      }
+    },
+    "mappings": {
+      "dynamic": "strict",
+      "properties": {
+        "timestamp": {
+          "type": "date",
+          "format": "strict_date_optional_time||epoch_millis"
+        },
+        "event_id": {
+          "type": "keyword"
+        },
+        "service": {
+          "type": "keyword"
+        },
+        "source_ip": {
+          "type": "ip"
+        },
+        "source_port": {
+          "type": "integer"
+        },
+        "destination_ip": {
+          "type": "ip"
+        },
+        "destination_port": {
+          "type": "integer"
+        },
+        "protocol": {
+          "type": "keyword"
+        },
+        "event_type": {
+          "type": "keyword"
+        },
+        "attack_type": {
+          "type": "keyword"
+        },
+        "attack_detected": {
+          "type": "boolean"
+        },
+        "username": {
+          "type": "keyword"
+        },
+        "password": {
+          "type": "keyword"
+        },
+        "command": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "payload": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 512
+            }
+          }
+        },
+        "session_id": {
+          "type": "keyword"
+        },
+        "country": {
+          "type": "keyword"
+        },
+        "city": {
+          "type": "keyword"
+        },
+        "asn": {
+          "type": "keyword"
+        },
+        "organization": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "reputation_score": {
+          "type": "integer"
+        },
+        "threat_level": {
+          "type": "keyword"
+        },
+        "tags": {
+          "type": "keyword"
+        },
+        "metadata": {
+          "type": "object",
+          "enabled": true
+        },
+        "enrichment": {
+          "type": "object",
+          "properties": {
+            "whois": {
+              "type": "object",
+              "enabled": true
+            },
+            "geoip": {
+              "type": "object",
+              "enabled": true
+            },
+            "reputation": {
+              "type": "object",
+              "enabled": true
+            }
+          }
+        },
+        "processed_at": {
+          "type": "date"
+        },
+        "ingested_at": {
+          "type": "date"
+        }
+      }
+    }
+  },
+  "priority": 500,
+  "version": 1,
+  "_meta": {
+    "description": "Index template for HP_TI honeypot logs",
+    "created_by": "HP_TI Platform",
+    "created_at": "2025-01-15"
+  }
+}
