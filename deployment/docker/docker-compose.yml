@@ -18,11 +18,24 @@ services:
       - ENVIRONMENT=development
       - LOG_LEVEL=INFO
       - LOG_FORMAT=json
+      # SSH Honeypot
       - HONEYPOT_SSH_ENABLED=true
+      - HONEYPOT_SSH_HOST=0.0.0.0
       - HONEYPOT_SSH_PORT=2222
-      - HONEYPOT_HTTP_ENABLED=false
-      - HONEYPOT_TELNET_ENABLED=false
-      - HONEYPOT_FTP_ENABLED=false
+      # HTTP Honeypot
+      - HONEYPOT_HTTP_ENABLED=true
+      - HONEYPOT_HTTP_HOST=0.0.0.0
+      - HONEYPOT_HTTP_PORT=8080
+      - HONEYPOT_HTTP_HTTPS_PORT=8443
+      # Telnet Honeypot
+      - HONEYPOT_TELNET_ENABLED=true
+      - HONEYPOT_TELNET_HOST=0.0.0.0
+      - HONEYPOT_TELNET_PORT=2323
+      # FTP Honeypot
+      - HONEYPOT_FTP_ENABLED=true
+      - HONEYPOT_FTP_HOST=0.0.0.0
+      - HONEYPOT_FTP_PORT=2121
+      # Database & Storage
       - DATABASE_URL=postgresql://hp_ti_user:hp_ti_pass@postgres:5432/hp_ti_db
       - ELASTICSEARCH_URL=http://elasticsearch:9200
       - REDIS_URL=redis://redis:6379/0

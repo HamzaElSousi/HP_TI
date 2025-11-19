@@ -1,0 +1,64 @@
+# HP_TI Configuration Example
+# Copy this file to config.yaml and customize for your deployment
+
+# Application Settings
+app:
+  environment: development  # development, staging, production
+  app_name: HP_TI
+  debug: false
+
+# Logging Configuration
+logging:
+  level: INFO  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: json  # json or text
+  dir: ./logs/honeypots
+
+# SSH Honeypot Configuration
+ssh:
+  enabled: true
+  host: 0.0.0.0
+  port: 2222
+  banner: "SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.1"
+  session_timeout: 300  # seconds
+  max_connections_per_ip: 5
+
+# HTTP/HTTPS Honeypot Configuration
+http:
+  enabled: true
+  host: 0.0.0.0
+  port: 8080
+  https_port: 8443
+
+# Telnet Honeypot Configuration
+telnet:
+  enabled: true
+  host: 0.0.0.0
+  port: 2323
+
+# FTP Honeypot Configuration
+ftp:
+  enabled: true
+  host: 0.0.0.0
+  port: 2121
+
+# PostgreSQL Database Configuration
+database:
+  url: postgresql://hp_ti_user:changeme@localhost:5432/hp_ti_db
+  pool_size: 10
+  max_overflow: 20
+  pool_timeout: 30
+
+# Elasticsearch Configuration
+elasticsearch:
+  url: http://localhost:9200
+  username: elastic
+  password: null  # Set if using X-Pack security
+  index_prefix: hp_ti
+  index_shards: 3
+  index_replicas: 1
+
+# Redis Configuration
+redis:
+  url: redis://localhost:6379/0
+  cache_ttl: 86400  # Default TTL in seconds (24 hours)
+  max_connections: 50

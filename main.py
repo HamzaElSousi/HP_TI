@@ -1,119 +1,86 @@
 """
 HP_TI Main Entry Point
 
-Starts honeypot services based on configuration.
+Starts honeypot services using the ServiceManager.
+Supports SSH, HTTP/HTTPS, Telnet, and FTP honeypots.
 """
 
 import asyncio
 import sys
+import argparse
 from pathlib import Path
-import signal
-from typing import List
 
-from honeypot.config.config_loader import get_config
-from honeypot.services.ssh_honeypot import SSHHoneypot
-from honeypot.logging.logger import setup_logger
-
-
-class HoneypotManager:
-    """
-    Manager for all honeypot services.
-
-    Handles starting, stopping, and coordinating multiple honeypot instances.
-    """
-
-    def __init__(self):
-        """Initialize honeypot manager."""
-        self.config = get_config()
-        self.logger = setup_logger(
-            "hp_ti.manager",
-            level=self.config.logging.level,
-            log_format=self.config.logging.format,
-        )
-        self.honeypots: List = []
-        self.running = False
-
-    async def start(self) -> None:
-        """Start all enabled honeypot services."""
-        self.logger.info("Starting HP_TI Honeypot Manager")
-        self.logger.info(f"Environment: {self.config.app.environment}")
-
-        log_dir = Path(self.config.logging.dir)
-        log_dir.mkdir(parents=True, exist_ok=True)
-
-        # Start SSH honeypot if enabled
-        if self.config.ssh.enabled:
-            self.logger.info("Initializing SSH honeypot")
-            ssh_honeypot = SSHHoneypot(self.config.ssh, log_dir)
-            self.honeypots.append(("ssh", ssh_honeypot))
-
-        # Start all honeypots
-        tasks = []
-        for name, honeypot in self.honeypots:
-            self.logger.info(f"Starting {name} honeypot")
-            task = asyncio.create_task(honeypot.start())
-            tasks.append(task)
-
-        if not tasks:
-            self.logger.warning("No honeypots enabled in configuration")
-            return
-
-        self.running = True
-        self.logger.info(f"Started {len(tasks)} honeypot service(s)")
-
-        # Wait for all honeypots
-        try:
-            await asyncio.gather(*tasks)
-        except asyncio.CancelledError:
-            self.logger.info("Honeypot manager shutting down")
-        except Exception as e:
-            self.logger.error(f"Error in honeypot manager: {e}", exc_info=True)
-
-    def stop(self) -> None:
-        """Stop all honeypot services."""
-        self.logger.info("Stopping all honeypots")
-
-        for name, honeypot in self.honeypots:
-            try:
-                self.logger.info(f"Stopping {name} honeypot")
-                honeypot.stop()
-            except Exception as e:
-                self.logger.error(f"Error stopping {name} honeypot: {e}")
-
-        self.running = False
-        self.logger.info("HP_TI Honeypot Manager stopped")
-
-
-def signal_handler(signum, frame):
-    """
-    Handle shutdown signals.
-
-    Args:
-        signum: Signal number
-        frame: Current stack frame
-    """
-    print("\nReceived shutdown signal, stopping honeypots...")
-    sys.exit(0)
+from honeypot.service_manager import ServiceManager
 
 
 async def main():
     """Main entry point."""
-    # Set up signal handlers
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(
+        description="HP_TI - Honeypot & Threat Intelligence Platform"
+    )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        help="Path to configuration file (default: config/config.yaml)",
+    )
+    parser.add_argument(
+        "--log-dir",
+        type=Path,
+        default=Path("logs"),
+        help="Log directory (default: logs)",
+    )
+    parser.add_argument(
+        "--status",
+        action="store_true",
+        help="Show service status and exit",
+    )
+    parser.add_argument(
+        "--health",
+        action="store_true",
+        help="Show health check and exit",
+    )
+    args = parser.parse_args()
 
-    # Create and start manager
-    manager = HoneypotManager()
+    # Create service manager
+    print("Initializing HP_TI Honeypot & Threat Intelligence Platform...")
+    manager = ServiceManager(config_path=args.config, log_dir=args.log_dir)
 
+    # Handle status/health check commands
+    if args.status:
+        status = manager.get_status()
+        print("\n=== Service Status ===")
+        for service_name, service_status in status.items():
+            print(f"\n{service_name.upper()}:")
+            for key, value in service_status.items():
+                print(f"  {key}: {value}")
+        return
+
+    if args.health:
+        health = await manager.health_check()
+        print("\n=== Health Check ===")
+        print(f"Overall Status: {health['overall_status'].upper()}")
+        print(f"Timestamp: {health['timestamp']}")
+        print("\nServices:")
+        for service_name, service_health in health['services'].items():
+            status_symbol = "✓" if service_health['status'] == 'healthy' else "✗"
+            print(f"  {status_symbol} {service_name}: {service_health['status']}")
+            if service_health.get('error'):
+                print(f"    Error: {service_health['error']}")
+        return
+
+    # Run service manager
     try:
-        await manager.start()
+        print(f"Starting honeypot services from: {args.log_dir}")
+        print("Press Ctrl+C to stop\n")
+        await manager.run()
     except KeyboardInterrupt:
-        print("\nShutdown requested...")
+        print("\n\nShutdown requested...")
     except Exception as e:
-        manager.logger.error(f"Fatal error: {e}", exc_info=True)
+        print(f"\nFatal error: {e}", file=sys.stderr)
         sys.exit(1)
     finally:
-        manager.stop()
+        print("HP_TI shutdown complete")
 
 
 if __name__ == "__main__":

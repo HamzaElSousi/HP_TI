@@ -271,3 +271,18 @@ def reload_config(config_file: Optional[Path] = None) -> Config:
     global _config
     _config = Config(config_file)
     return _config
+
+
+def load_config(config_file: Optional[Path] = None) -> Config:
+    """
+    Load configuration from file or environment.
+
+    Alias for get_config() for compatibility with service_manager.
+
+    Args:
+        config_file: Optional path to YAML configuration file
+
+    Returns:
+        Configuration instance
+    """
+    return get_config(config_file)
