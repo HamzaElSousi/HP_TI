@@ -1,0 +1,192 @@
+# Prometheus Alert Rules for HP_TI
+
+groups:
+  - name: service_health
+    interval: 1m
+    rules:
+      - alert: ServiceDown
+        expr: honeypot_service_up == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: honeypot
+        annotations:
+          summary: "Honeypot service {{ $labels.service }} is down"
+          description: "Service {{ $labels.service }} has been down for more than 2 minutes"
+
+      - alert: HighServiceErrorRate
+        expr: rate(honeypot_service_errors_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: high
+          component: honeypot
+        annotations:
+          summary: "High error rate for service {{ $labels.service }}"
+          description: "Service {{ $labels.service }} error rate is {{ $value }} errors/sec"
+
+  - name: attack_monitoring
+    interval: 1m
+    rules:
+      - alert: HighAttackRate
+        expr: rate(honeypot_attacks_total[5m]) > 10
+        for: 10m
+        labels:
+          severity: high
+          component: honeypot
+        annotations:
+          summary: "High attack rate detected"
+          description: "Attack rate is {{ $value }} attacks/sec for service {{ $labels.service }}"
+
+      - alert: CoordinatedAttack
+        expr: |
+          count(rate(honeypot_connections_total[5m]) > 1) by (service) > 10
+        for: 5m
+        labels:
+          severity: high
+          component: honeypot
+        annotations:
+          summary: "Possible coordinated attack on {{ $labels.service }}"
+          description: "More than 10 IPs attacking {{ $labels.service }} simultaneously"
+
+      - alert: HighAuthenticationAttemptRate
+        expr: rate(honeypot_auth_attempts_total[1m]) > 100
+        for: 5m
+        labels:
+          severity: medium
+          component: honeypot
+        annotations:
+          summary: "High authentication attempt rate"
+          description: "Authentication attempt rate is {{ $value }} attempts/sec on {{ $labels.service }}"
+
+  - name: pipeline_health
+    interval: 1m
+    rules:
+      - alert: PipelineProcessingErrors
+        expr: rate(pipeline_events_failed_total[5m]) > 1
+        for: 10m
+        labels:
+          severity: high
+          component: pipeline
+        annotations:
+          summary: "Pipeline processing errors detected"
+          description: "Pipeline stage {{ $labels.stage }} has {{ $value }} errors/sec"
+
+      - alert: HighPipelineLatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(pipeline_processing_duration_seconds_bucket[5m])
+          ) > 5
+        for: 10m
+        labels:
+          severity: medium
+          component: pipeline
+        annotations:
+          summary: "High pipeline processing latency"
+          description: "P95 latency for {{ $labels.stage }} is {{ $value }}s"
+
+      - alert: QueueBacklog
+        expr: pipeline_queue_size > 1000
+        for: 15m
+        labels:
+          severity: medium
+          component: pipeline
+        annotations:
+          summary: "Queue backlog detected"
+          description: "Queue {{ $labels.queue_name }} has {{ $value }} items"
+
+  - name: storage_health
+    interval: 1m
+    rules:
+      - alert: StorageWriteErrors
+        expr: rate(pipeline_storage_write_errors_total[5m]) > 1
+        for: 5m
+        labels:
+          severity: critical
+          component: storage
+        annotations:
+          summary: "Storage write errors detected"
+          description: "{{ $labels.backend }} has {{ $value }} write errors/sec"
+
+      - alert: StorageHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(pipeline_storage_write_duration_seconds_bucket[5m])
+          ) > 1
+        for: 10m
+        labels:
+          severity: medium
+          component: storage
+        annotations:
+          summary: "High storage write latency"
+          description: "P95 write latency for {{ $labels.backend }} is {{ $value }}s"
+
+      - alert: ConnectionPoolExhaustion
+        expr: |
+          pipeline_storage_connection_pool_size{state="active"}
+          /
+          (
+            pipeline_storage_connection_pool_size{state="active"}
+            +
+            pipeline_storage_connection_pool_size{state="idle"}
+          ) > 0.9
+        for: 5m
+        labels:
+          severity: high
+          component: storage
+        annotations:
+          summary: "Connection pool nearly exhausted"
+          description: "{{ $labels.backend }} connection pool is {{ $value | humanizePercentage }} utilized"
+
+  - name: enrichment_health
+    interval: 1m
+    rules:
+      - alert: LowEnrichmentCacheHitRate
+        expr: |
+          rate(pipeline_enrichment_cache_hits_total[5m])
+          /
+          (
+            rate(pipeline_enrichment_cache_hits_total[5m])
+            +
+            rate(pipeline_enrichment_cache_misses_total[5m])
+          ) < 0.5
+        for: 30m
+        labels:
+          severity: low
+          component: enrichment
+        annotations:
+          summary: "Low enrichment cache hit rate"
+          description: "Cache hit rate for {{ $labels.enricher }} is {{ $value | humanizePercentage }}"
+
+      - alert: EnrichmentAPIFailures
+        expr: |
+          rate(pipeline_enrichment_api_calls_total{status="failure"}[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: medium
+          component: enrichment
+        annotations:
+          summary: "Enrichment API failures detected"
+          description: "{{ $labels.provider }} API failure rate is {{ $value }} failures/sec"
+
+  - name: capacity_planning
+    interval: 5m
+    rules:
+      - alert: HighConnectionVolume
+        expr: rate(honeypot_connections_total[5m]) > 50
+        for: 30m
+        labels:
+          severity: low
+          component: capacity
+        annotations:
+          summary: "High connection volume"
+          description: "Connection rate is {{ $value }} connections/sec - consider scaling"
+
+      - alert: HighEventProcessingVolume
+        expr: rate(pipeline_events_processed_total[5m]) > 100
+        for: 30m
+        labels:
+          severity: low
+          component: capacity
+        annotations:
+          summary: "High event processing volume"
+          description: "Processing rate is {{ $value }} events/sec - consider scaling"

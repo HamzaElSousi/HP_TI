@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HP_TI Weekly Report - Week of {{ report_metadata.start_date[:10] }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            font-size: 2.8em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .metric-card.success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .metric-card.warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .metric-card.info {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .metric-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .metric-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .trend {
+            font-size: 0.8em;
+            margin-top: 5px;
+            opacity: 0.9;
+        }
+
+        .trend-up::before {
+            content: "▲ ";
+        }
+
+        .trend-down::before {
+            content: "▼ ";
+        }
+
+        h2 {
+            color: #2c3e50;
+            margin: 40px 0 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .section {
+            margin: 40px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        thead {
+            background: #34495e;
+            color: white;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .alert-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .alert-box.critical {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+        }
+
+        .alert-box.success {
+            background: #d4edda;
+            border-left-color: #28a745;
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #ecf0f1;
+            color: #7f8c8d;
+            text-align: center;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📈 HP_TI Weekly Report</h1>
+            <div class="subtitle">
+                <strong>Week of:</strong> {{ report_metadata.start_date[:10] }} to {{ report_metadata.end_date[:10] }}<br>
+                <strong>Generated:</strong> {{ report_metadata.generated_at }}
+            </div>
+        </div>
+
+        <!-- Executive Summary -->
+        <h2>📊 Executive Summary</h2>
+        <div class="metrics-grid">
+            <div class="metric-card warning">
+                <div class="metric-label">Total Connections</div>
+                <div class="metric-value">{{ "{:,}".format(executive_summary.total_connections) }}</div>
+                <div class="trend trend-up">{{ trends.attack_rate_change }}</div>
+            </div>
+            <div class="metric-card warning">
+                <div class="metric-label">Total Attacks</div>
+                <div class="metric-value">{{ "{:,}".format(executive_summary.total_attacks) }}</div>
+                <div class="trend trend-up">{{ trends.attack_rate_change }}</div>
+            </div>
+            <div class="metric-card info">
+                <div class="metric-label">Unique Attackers</div>
+                <div class="metric-value">{{ "{:,}".format(executive_summary.unique_attackers) }}</div>
+                <div class="trend trend-up">{{ trends.unique_ips_change }}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Auth Attempts</div>
+                <div class="metric-value">{{ "{:,}".format(executive_summary.authentication_attempts) }}</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Commands Executed</div>
+                <div class="metric-value">{{ "{:,}".format(executive_summary.commands_executed) }}</div>
+            </div>
+            <div class="metric-card success">
+                <div class="metric-label">System Uptime</div>
+                <div class="metric-value">{{ executive_summary.uptime_percentage }}%</div>
+            </div>
+        </div>
+
+        <!-- Trends & Insights -->
+        <h2>📈 Trends & Insights</h2>
+        <div class="alert-box">
+            <h3>Key Trends This Week</h3>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+                <li><strong>Attack Rate:</strong> {{ trends.attack_rate_change }} compared to last week</li>
+                <li><strong>Unique IPs:</strong> {{ trends.unique_ips_change }} compared to last week</li>
+                <li><strong>New Attack Patterns:</strong> {{ trends.new_attack_patterns }} new patterns detected</li>
+            </ul>
+        </div>
+
+        {% if trends.emerging_threats %}
+        <div class="alert-box critical">
+            <h3>⚠️ Emerging Threats</h3>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+                {% for threat in trends.emerging_threats %}
+                <li>{{ threat }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Attack Patterns -->
+        <h2>🎯 Attack Patterns Detected</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Pattern</th>
+                    <th>Occurrences</th>
+                    <th>IPs Involved</th>
+                    <th>Services Targeted</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pattern in attack_patterns %}
+                <tr>
+                    <td><strong>{{ pattern.pattern }}</strong></td>
+                    <td>{{ "{:,}".format(pattern.occurrences) }}</td>
+                    <td>{{ pattern.ips_involved }}</td>
+                    <td>{{ pattern.services|join(', ')|upper }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Service Performance -->
+        <h2>⚙️ Service Performance</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Service</th>
+                    <th>Connections</th>
+                    <th>Auth Attempts</th>
+                    <th>Unique Credentials</th>
+                    <th>Uptime</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for service, stats in service_statistics.items() %}
+                <tr>
+                    <td><strong>{{ service.upper() }}</strong></td>
+                    <td>{{ "{:,}".format(stats.connections) if 'connections' in stats else 'N/A' }}</td>
+                    <td>{{ "{:,}".format(stats.auth_attempts) if 'auth_attempts' in stats else 'N/A' }}</td>
+                    <td>{{ "{:,}".format(stats.unique_credentials) if 'unique_credentials' in stats else 'N/A' }}</td>
+                    <td>{{ stats.uptime }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Top Attackers -->
+        <h2>🌍 Top 10 Attackers</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>IP Address</th>
+                    <th>Country</th>
+                    <th>Attacks</th>
+                    <th>Services</th>
+                    <th>Threat Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for attacker in top_attackers[:10] %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td><code>{{ attacker.ip }}</code></td>
+                    <td>{{ attacker.country }}</td>
+                    <td>{{ "{:,}".format(attacker.attacks) }}</td>
+                    <td>{{ attacker.services|join(', ')|upper }}</td>
+                    <td><strong>{{ attacker.threat_score }}/100</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Geographic Analysis -->
+        <h2>🗺️ Geographic Distribution</h2>
+        <div class="two-column">
+            <div>
+                <h3>Top 10 Countries</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Country</th>
+                            <th>Attacks</th>
+                            <th>%</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set geo_total = geographic_distribution.values()|sum %}
+                        {% for country, count in (geographic_distribution.items()|sort(attribute=1, reverse=true))[:10] %}
+                        <tr>
+                            <td>{{ country }}</td>
+                            <td>{{ "{:,}".format(count) }}</td>
+                            <td>{{ "%.1f"|format((count / geo_total * 100) if geo_total > 0 else 0) }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div>
+                <h3>Attack Distribution</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Count</th>
+                            <th>%</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set total = attack_statistics.by_type.values()|sum %}
+                        {% for type, count in (attack_statistics.by_type.items()|sort(attribute=1, reverse=true))[:10] %}
+                        <tr>
+                            <td>{{ type.replace('_', ' ').title() }}</td>
+                            <td>{{ "{:,}".format(count) }}</td>
+                            <td>{{ "%.1f"|format((count / total * 100) if total > 0 else 0) }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Credential Analysis -->
+        <h2>🔑 Credential Intelligence</h2>
+        <p><strong>Total Unique Credentials Captured:</strong> {{ "{:,}".format(credentials.total_unique_credentials) }}</p>
+        <div class="two-column" style="margin-top: 20px;">
+            <div>
+                <h3>Most Attempted Usernames</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Attempts</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in credentials.top_usernames[:10] %}
+                        <tr>
+                            <td><code>{{ item.username }}</code></td>
+                            <td>{{ "{:,}".format(item.count) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div>
+                <h3>Most Attempted Passwords</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Password</th>
+                            <th>Attempts</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in credentials.top_passwords[:10] %}
+                        <tr>
+                            <td><code>{{ item.password }}</code></td>
+                            <td>{{ "{:,}".format(item.count) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- System Health -->
+        <h2>💚 System Health & Performance</h2>
+        <div class="two-column">
+            <div>
+                <h3>Services Status</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Service</th>
+                            <th>Status</th>
+                            <th>Uptime</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for service, health in system_health.services.items() %}
+                        <tr>
+                            <td><strong>{{ service.upper() }}</strong></td>
+                            <td style="color: {% if health.status == 'up' %}#28a745{% else %}#dc3545{% endif %}">
+                                {{ health.status.upper() }}
+                            </td>
+                            <td>{{ health.uptime }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div>
+                <h3>Pipeline Performance</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Events Processed</td>
+                            <td>{{ "{:,}".format(system_health.pipeline.events_processed) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Processing Errors</td>
+                            <td>{{ system_health.pipeline.processing_errors }}</td>
+                        </tr>
+                        <tr>
+                            <td>Average Latency</td>
+                            <td>{{ system_health.pipeline.average_latency_ms }} ms</td>
+                        </tr>
+                        <tr>
+                            <td>Avg Queue Size</td>
+                            <td>{{ system_health.pipeline.queue_size_avg }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recommendations -->
+        <h2>💡 Security Recommendations</h2>
+        <div class="alert-box">
+            <ol style="margin-left: 20px;">
+                {% for recommendation in recommendations %}
+                <li style="margin: 10px 0;">{{ recommendation }}</li>
+                {% endfor %}
+            </ol>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>HP_TI - Honeypot & Threat Intelligence Platform</strong></p>
+            <p>Week of {{ report_metadata.start_date[:10] }} | Generated {{ report_metadata.generated_at }}</p>
+            <p>This report contains sensitive security information - Handle according to your organization's data classification policy</p>
+        </div>
+    </div>
+</body>
+</html>
