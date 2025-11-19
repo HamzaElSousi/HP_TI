@@ -1,0 +1,64 @@
+# HP_TI Honeypot Configuration
+# This file provides default configuration that can be overridden by environment variables
+
+# Application Settings
+app:
+  environment: development
+  app_name: HP_TI
+  debug: false
+
+# SSH Honeypot
+ssh:
+  enabled: true
+  host: 0.0.0.0
+  port: 2222
+  banner: "SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.1"
+  session_timeout: 300
+  max_connections_per_ip: 5
+
+# HTTP Honeypot
+http:
+  enabled: true
+  host: 0.0.0.0
+  port: 8080
+  https_port: 8443
+
+# Telnet Honeypot
+telnet:
+  enabled: false
+  host: 0.0.0.0
+  port: 2323
+
+# FTP Honeypot
+ftp:
+  enabled: false
+  host: 0.0.0.0
+  port: 2121
+
+# Database Configuration
+database:
+  url: postgresql://hp_ti_user:changeme@localhost:5432/hp_ti_db
+  pool_size: 10
+  max_overflow: 20
+  pool_timeout: 30
+
+# Elasticsearch Configuration
+elasticsearch:
+  url: http://localhost:9200
+  username: elastic
+  password: null
+  index_prefix: hp_ti
+  index_shards: 3
+  index_replicas: 1
+
+# Redis Configuration
+redis:
+  url: redis://localhost:6379/0
+  cache_ttl: 86400
+  max_connections: 50
+
+# Logging Configuration
+logging:
+  level: INFO
+  format: json
+  dir: ./logs/honeypots

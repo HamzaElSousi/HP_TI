@@ -1,0 +1,180 @@
+version: '3.8'
+
+services:
+  # SSH Honeypot Service
+  honeypot:
+    build:
+      context: ../..
+      dockerfile: deployment/docker/Dockerfile
+    container_name: hp_ti_honeypot
+    hostname: honeypot
+    ports:
+      - "2222:2222"  # SSH
+      - "8080:8080"  # HTTP
+      - "8443:8443"  # HTTPS
+      - "2323:2323"  # Telnet
+      - "2121:2121"  # FTP
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
+      - LOG_FORMAT=json
+      - HONEYPOT_SSH_ENABLED=true
+      - HONEYPOT_SSH_PORT=2222
+      - HONEYPOT_HTTP_ENABLED=false
+      - HONEYPOT_TELNET_ENABLED=false
+      - HONEYPOT_FTP_ENABLED=false
+      - DATABASE_URL=postgresql://hp_ti_user:hp_ti_pass@postgres:5432/hp_ti_db
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - honeypot_logs:/app/logs
+      - ../../config:/app/config:ro
+    networks:
+      - hp_ti_network
+    depends_on:
+      - postgres
+      - elasticsearch
+      - redis
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: false
+    tmpfs:
+      - /tmp
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: hp_ti_postgres
+    hostname: postgres
+    environment:
+      - POSTGRES_USER=hp_ti_user
+      - POSTGRES_PASSWORD=hp_ti_pass
+      - POSTGRES_DB=hp_ti_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - hp_ti_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hp_ti_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Elasticsearch
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: hp_ti_elasticsearch
+    hostname: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - hp_ti_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: hp_ti_redis
+    hostname: redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - hp_ti_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Kibana (Optional - for log exploration)
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: hp_ti_kibana
+    hostname: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    networks:
+      - hp_ti_network
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+    profiles:
+      - visualization
+
+  # Grafana (Optional - for dashboards)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: hp_ti_grafana
+    hostname: grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - hp_ti_network
+    restart: unless-stopped
+    profiles:
+      - visualization
+
+  # Prometheus (Optional - for metrics)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: hp_ti_prometheus
+    hostname: prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+      - ../../config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - hp_ti_network
+    restart: unless-stopped
+    profiles:
+      - visualization
+
+networks:
+  hp_ti_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  honeypot_logs:
+    driver: local
+  postgres_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+  redis_data:
+    driver: local
+  grafana_data:
+    driver: local
+  prometheus_data:
+    driver: local
