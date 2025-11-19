@@ -1,0 +1,217 @@
+{
+  "dashboard": {
+    "title": "HP_TI - Attack Analysis Dashboard",
+    "tags": ["honeypot", "attacks", "analysis"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "1m",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Attack Rate Over Time",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 0, "w": 24, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(honeypot_attacks_total[5m])) by (attack_type)",
+            "legendFormat": "{{attack_type}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 30,
+              "stack": "normal"
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "HTTP Attack Vectors",
+        "type": "piechart",
+        "gridPos": {"x": 0, "y": 8, "w": 8, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(increase(honeypot_http_attack_vectors[24h])) by (vector)",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "pieType": "donut"
+        }
+      },
+      {
+        "id": 3,
+        "title": "Top Malicious Commands",
+        "type": "table",
+        "gridPos": {"x": 8, "y": 8, "w": 16, "h": 8},
+        "targets": [
+          {
+            "expr": "topk(20, sum(increase(honeypot_malicious_commands_total[24h])) by (pattern, service))",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "renameByName": {
+                "pattern": "Pattern",
+                "service": "Service",
+                "Value": "Count"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Commands Executed Over Time",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(honeypot_commands_total[5m])) by (command_type)",
+            "legendFormat": "{{command_type}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "cps",
+            "custom": {
+              "drawStyle": "bars",
+              "fillOpacity": 80
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Attack Patterns Detected",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(pipeline_patterns_detected_total[5m])) by (pattern_type)",
+            "legendFormat": "{{pattern_type}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 20
+            }
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "FTP Operations",
+        "type": "bargauge",
+        "gridPos": {"x": 0, "y": 24, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(increase(honeypot_ftp_operations_total[24h])) by (operation)",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "orientation": "horizontal",
+          "displayMode": "gradient"
+        }
+      },
+      {
+        "id": 7,
+        "title": "Unique Credentials Captured",
+        "type": "stat",
+        "gridPos": {"x": 12, "y": 24, "w": 6, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(honeypot_unique_credentials)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "blue"},
+                {"value": 100, "color": "yellow"},
+                {"value": 500, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Attack Success Rate",
+        "type": "gauge",
+        "gridPos": {"x": 18, "y": 24, "w": 6, "h": 8},
+        "targets": [
+          {
+            "expr": "100 * sum(rate(honeypot_auth_attempts_total{success=\"true\"}[24h])) / sum(rate(honeypot_auth_attempts_total[24h]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 5, "color": "red"}
+              ]
+            }
+          }
+        },
+        "options": {
+          "showThresholdLabels": true,
+          "showThresholdMarkers": true
+        }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "time_range",
+          "type": "interval",
+          "label": "Time Range",
+          "query": "1h,6h,12h,24h,7d,30d",
+          "auto": false
+        },
+        {
+          "name": "service",
+          "type": "query",
+          "label": "Service",
+          "query": "label_values(honeypot_attacks_total, service)",
+          "multi": true,
+          "includeAll": true
+        }
+      ]
+    }
+  }
+}
