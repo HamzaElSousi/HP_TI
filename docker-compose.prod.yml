@@ -1,0 +1,542 @@
+version: '3.8'
+
+################################################################################
+# HP_TI Production Docker Compose Configuration
+#
+# Optimized for production deployment with security, performance, and
+# reliability enhancements.
+#
+# Usage:
+#   docker-compose -f docker-compose.prod.yml up -d
+#
+# Prerequisites:
+#   - .env file configured with production values
+#   - SSL certificates in place
+#   - Security hardening completed
+#   - Firewall configured
+################################################################################
+
+networks:
+  hp_ti_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  postgres_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+services:
+  ############################################################################
+  # PostgreSQL Database
+  ############################################################################
+  postgres:
+    image: postgres:15-alpine
+    container_name: hp_ti_postgres
+    restart: unless-stopped
+    networks:
+      hp_ti_network:
+        ipv4_address: 172.20.0.10
+    ports:
+      - "127.0.0.1:5432:5432"  # Bind to localhost only
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/postgres_init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./backups/postgres:/backups
+    environment:
+      - POSTGRES_DB=${DB_NAME:-hp_ti_db}
+      - POSTGRES_USER=${DB_USER:-hp_ti_user}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    command:
+      - postgres
+      - -c
+      - max_connections=200
+      - -c
+      - shared_buffers=2GB
+      - -c
+      - effective_cache_size=6GB
+      - -c
+      - maintenance_work_mem=512MB
+      - -c
+      - checkpoint_completion_target=0.9
+      - -c
+      - wal_buffers=16MB
+      - -c
+      - default_statistics_target=100
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - effective_io_concurrency=200
+      - -c
+      - work_mem=10MB
+      - -c
+      - min_wal_size=1GB
+      - -c
+      - max_wal_size=4GB
+      - -c
+      - max_worker_processes=4
+      - -c
+      - max_parallel_workers_per_gather=2
+      - -c
+      - max_parallel_workers=4
+      - -c
+      - max_parallel_maintenance_workers=2
+      - -c
+      - log_min_duration_statement=1000
+      - -c
+      - log_checkpoints=on
+      - -c
+      - log_connections=on
+      - -c
+      - log_disconnections=on
+      - -c
+      - log_lock_waits=on
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '2'
+          memory: 4G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-hp_ti_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
+    read_only: false
+    tmpfs:
+      - /tmp
+      - /run
+
+  ############################################################################
+  # Redis Cache
+  ############################################################################
+  redis:
+    image: redis:7-alpine
+    container_name: hp_ti_redis
+    restart: unless-stopped
+    networks:
+      hp_ti_network:
+        ipv4_address: 172.20.0.11
+    ports:
+      - "127.0.0.1:6379:6379"  # Bind to localhost only
+    volumes:
+      - redis_data:/data
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  ############################################################################
+  # Elasticsearch
+  ############################################################################
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.5.0
+    container_name: hp_ti_elasticsearch
+    restart: unless-stopped
+    networks:
+      hp_ti_network:
+        ipv4_address: 172.20.0.12
+    ports:
+      - "127.0.0.1:9200:9200"  # Bind to localhost only
+      - "127.0.0.1:9300:9300"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+      - ./backups/elasticsearch:/usr/share/elasticsearch/backups
+    environment:
+      - node.name=es-node-1
+      - cluster.name=hp_ti_cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms4g -Xmx4g"  # Set to 50% of container memory
+      - xpack.security.enabled=true
+      - xpack.security.enrollment.enabled=false
+      - ELASTIC_PASSWORD=${ES_PASSWORD}
+      - xpack.monitoring.collection.enabled=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '2'
+          memory: 4G
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -u elastic:${ES_PASSWORD} http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\\|yellow\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
+
+  ############################################################################
+  # Honeypot Application
+  ############################################################################
+  honeypot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production  # Multi-stage build
+    image: hp_ti/honeypot:${VERSION:-latest}
+    container_name: hp_ti_honeypot
+    restart: unless-stopped
+    networks:
+      hp_ti_network:
+        ipv4_address: 172.20.0.20
+    ports:
+      # Honeypot services (exposed to public)
+      - "2222:2222"   # SSH honeypot
+      - "8080:8080"   # HTTP honeypot
+      - "8443:8443"   # HTTPS honeypot
+      - "2323:2323"   # Telnet honeypot
+      - "2121:2121"   # FTP honeypot
+      # Metrics (localhost only)
+      - "127.0.0.1:9090:9090"  # Prometheus metrics
+    volumes:
+      - ./honeypot:/app/honeypot:ro
+      - ./config:/app/config:ro
+      - ./logs:/app/logs
+      - ./ssl:/app/ssl:ro
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ES_HOST=elasticsearch
+      - ES_PORT=9200
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+        reservations:
+          cpus: '2'
+          memory: 2G
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE  # Bind to ports < 1024
+    read_only: false
+    tmpfs:
+      - /tmp
+
+  ############################################################################
+  # Pipeline (Event Processing)
+  ############################################################################
+  pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile.pipeline
+      target: production
+    image: hp_ti/pipeline:${VERSION:-latest}
+    container_name: hp_ti_pipeline
+    restart: unless-stopped
+    networks:
+      hp_ti_network:
+        ipv4_address: 172.20.0.21
+    ports:
+      - "127.0.0.1:9091:9091"  # Prometheus metrics
+    volumes:
+      - ./pipeline:/app/pipeline:ro
+      - ./config:/app/config:ro
+      - ./logs:/app/logs
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ES_HOST=elasticsearch
+      - ES_PORT=9200
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+        reservations:
+          cpus: '2'
+          memory: 2G
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: false
+    tmpfs:
+      - /tmp
+
+  ############################################################################
+  # Prometheus (Metrics Collection)
+  ############################################################################
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: hp_ti_prometheus
+    restart: unless-stopped
+    networks:
+      hp_ti_network:
+        ipv4_address: 172.20.0.30
+    ports:
+      - "127.0.0.1:9090:9090"  # Web UI (localhost only)
+    volumes:
+      - prometheus_data:/prometheus
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - ./config/recording_rules.yml:/etc/prometheus/recording_rules.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--storage.tsdb.retention.size=50GB'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    depends_on:
+      - honeypot
+      - pipeline
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: false
+    tmpfs:
+      - /tmp
+
+  ############################################################################
+  # Grafana (Visualization)
+  ############################################################################
+  grafana:
+    image: grafana/grafana:latest
+    container_name: hp_ti_grafana
+    restart: unless-stopped
+    networks:
+      hp_ti_network:
+        ipv4_address: 172.20.0.31
+    ports:
+      - "127.0.0.1:3000:3000"  # Web UI (localhost only, use reverse proxy for external access)
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./visualization/dashboards:/etc/grafana/dashboards:ro
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+    environment:
+      - GF_SERVER_ROOT_URL=https://grafana.hp-ti.example.com
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SECURITY_DISABLE_GRAVATAR=true
+      - GF_SECURITY_COOKIE_SECURE=true
+      - GF_SECURITY_COOKIE_SAMESITE=strict
+      - GF_SESSION_COOKIE_SECURE=true
+      - GF_SNAPSHOTS_EXTERNAL_ENABLED=false
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+      - GF_LOG_MODE=console file
+      - GF_LOG_LEVEL=info
+    depends_on:
+      - prometheus
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: false
+    tmpfs:
+      - /tmp
+
+  ############################################################################
+  # Alert Manager (Optional - uncomment if using)
+  ############################################################################
+  # alertmanager:
+  #   image: prom/alertmanager:latest
+  #   container_name: hp_ti_alertmanager
+  #   restart: unless-stopped
+  #   networks:
+  #     - hp_ti_network
+  #   ports:
+  #     - "127.0.0.1:9093:9093"
+  #   volumes:
+  #     - ./config/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+  #   command:
+  #     - '--config.file=/etc/alertmanager/alertmanager.yml'
+  #     - '--storage.path=/alertmanager'
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '1'
+  #         memory: 512M
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   cap_drop:
+  #     - ALL
+
+################################################################################
+# Production Notes:
+#
+# 1. Security:
+#    - All services bind to localhost by default (use reverse proxy for external access)
+#    - Containers run with minimal capabilities (cap_drop: ALL)
+#    - Read-only root filesystems where possible
+#    - No new privileges allowed
+#    - Secrets managed via environment variables (use secrets management in production)
+#
+# 2. Resource Limits:
+#    - All services have memory and CPU limits to prevent resource exhaustion
+#    - Adjust based on your server capacity
+#
+# 3. Networking:
+#    - Services communicate on private bridge network
+#    - Only honeypot services exposed to public
+#    - Management interfaces (Grafana, Prometheus) on localhost only
+#
+# 4. High Availability:
+#    - For HA, deploy multiple instances with shared database
+#    - Use external managed services for PostgreSQL, Elasticsearch, Redis
+#    - Implement load balancing with nginx or HAProxy
+#
+# 5. Monitoring:
+#    - All services have health checks
+#    - Prometheus collects metrics from all services
+#    - Grafana provides visualization
+#
+# 6. Backups:
+#    - Run automated backup script (deployment/scripts/backup.sh)
+#    - Backup volumes are mounted for PostgreSQL and Elasticsearch
+#    - Schedule regular backups via cron
+#
+# 7. Logging:
+#    - All containers log to Docker logging driver
+#    - Configure log rotation in Docker daemon.json
+#    - Logs also written to ./logs for persistence
+#
+# 8. Updates:
+#    - Pin specific versions in production (not 'latest')
+#    - Test updates in staging first
+#    - Use blue-green or canary deployment for zero-downtime updates
+#
+################################################################################
