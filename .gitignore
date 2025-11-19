@@ -1,0 +1,437 @@
+# HP_TI .gitignore
+
+# ============================================================================
+# Sensitive Files - NEVER COMMIT
+# ============================================================================
+
+# Environment variables with secrets
+.env
+.env.local
+.env.*.local
+*.env
+
+# Secrets and credentials
+secrets/
+credentials.json
+*.key
+*.pem
+*.p12
+*.pfx
+id_rsa*
+*.cert
+
+# API keys and tokens
+api_keys.txt
+tokens.txt
+
+# ============================================================================
+# Logs & Data Files
+# ============================================================================
+
+# Log files
+logs/
+*.log
+*.log.*
+log_*.txt
+
+# Honeypot data
+honeypot_data/
+attack_data/
+capture/
+
+# Dead letter queue
+dead_letter_queue/
+dlq/
+
+# Reports
+reports/
+*.pdf
+*.html
+
+# Database dumps
+*.sql
+*.dump
+*.sqlite
+*.db
+
+# MaxMind GeoIP databases
+data/GeoLite2-*.mmdb
+*.mmdb
+
+# Sample/test data that shouldn't be committed
+data/samples/
+data/test/
+data/production/
+
+# ============================================================================
+# Python
+# ============================================================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+test-results/
+junit.xml
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# pdm
+.pdm.toml
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# ============================================================================
+# Docker
+# ============================================================================
+
+# Docker volumes
+docker-volumes/
+volumes/
+
+# Docker override files (may contain sensitive configs)
+docker-compose.override.yml
+
+# ============================================================================
+# IDEs & Editors
+# ============================================================================
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+.vim/
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# JetBrains
+.idea/
+*.iml
+out/
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# NetBeans
+nbproject/
+
+# ============================================================================
+# Operating System Files
+# ============================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ============================================================================
+# Cloud & Infrastructure
+# ============================================================================
+
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraform/
+.terraform.lock.hcl
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Ansible
+*.retry
+
+# AWS
+.aws/credentials
+
+# GCP
+gcp-credentials.json
+*-credentials.json
+
+# Azure
+*.publishsettings
+
+# ============================================================================
+# Monitoring & Metrics
+# ============================================================================
+
+# Prometheus data
+prometheus_data/
+prometheus/data/
+
+# Grafana data
+grafana_data/
+grafana/data/
+
+# ============================================================================
+# Temporary Files
+# ============================================================================
+
+# General temp files
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+
+# Lock files
+*.lock
+
+# Cache directories
+cache/
+.cache/
+
+# ============================================================================
+# Build & Deployment
+# ============================================================================
+
+# Build artifacts
+build/
+dist/
+*.whl
+
+# Node modules (if using any JS tools)
+node_modules/
+package-lock.json
+yarn.lock
+
+# ============================================================================
+# Security & Audit
+# ============================================================================
+
+# Security scan results
+security_scan_results/
+vulnerability_reports/
+penetration_test_results/
+
+# Audit logs (if containing sensitive info)
+audit_*.log
+
+# ============================================================================
+# CI/CD
+# ============================================================================
+
+# GitHub Actions artifacts
+.github/workflows/*.log
+
+# GitLab CI cache
+.gitlab-ci-cache/
+
+# ============================================================================
+# Miscellaneous
+# ============================================================================
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# Large files (use Git LFS if needed)
+*.bin
+*.dat
+
+# Debug files
+debug/
+*.debug
+
+# Profiling results
+*.prof
+*.pstats
+
+# Core dumps
+core.*
+
+# ============================================================================
+# Project Specific
+# ============================================================================
+
+# Elasticsearch data directory (if running locally)
+elasticsearch_data/
+es_data/
+
+# PostgreSQL data directory (if running locally)
+postgres_data/
+pg_data/
+
+# Redis data directory (if running locally)
+redis_data/
+
+# Backup files
+backups/
+*.backup
+
+# Screenshots/evidence (if they contain sensitive data)
+screenshots/
+evidence/
+
+# Development notes with potential secrets
+NOTES.md
+TODO_private.md
+scratch.txt
