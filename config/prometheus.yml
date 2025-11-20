@@ -1,0 +1,75 @@
+# Prometheus Configuration for HP_TI
+
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+  scrape_timeout: 10s
+
+  external_labels:
+    cluster: 'hp_ti'
+    environment: 'production'
+
+# Scrape configurations
+scrape_configs:
+  # HP_TI Honeypot Metrics
+  - job_name: 'honeypot'
+    static_configs:
+      - targets: ['honeypot:9090']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # HP_TI Pipeline Metrics
+  - job_name: 'pipeline'
+    static_configs:
+      - targets: ['honeypot:9090']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Node Exporter (optional - for system metrics)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+)(?::\d+)?'
+        replacement: '${1}'
+
+  # PostgreSQL Exporter (optional)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  # Redis Exporter (optional)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
+  # Elasticsearch Exporter (optional)
+  - job_name: 'elasticsearch'
+    static_configs:
+      - targets: ['elasticsearch-exporter:9114']
+
+# Recording rules for commonly used queries
+rule_files:
+  - 'recording_rules.yml'
+  - 'alert_rules.yml'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+# Storage configuration
+storage:
+  tsdb:
+    path: /prometheus
+    retention:
+      time: 30d
+      size: 50GB

@@ -1,0 +1,218 @@
+# HP_TI Alert Configuration
+# Defines alert rules and notification channels
+
+# Global alert settings
+alert_manager:
+  log_file: logs/alerts.log
+  max_history: 10000
+
+# Notification channels
+channels:
+  # Log channel (always enabled)
+  log:
+    enabled: true
+    log_file: logs/alerts.log
+
+  # Console channel (for development)
+  console:
+    enabled: true
+
+  # Email channel
+  email:
+    enabled: false
+    smtp_host: smtp.gmail.com
+    smtp_port: 587
+    use_tls: true
+    from_addr: alerts@hp-ti.local
+    to_addrs:
+      - admin@hp-ti.local
+      - security@hp-ti.local
+    # Optional authentication
+    username: null
+    password: null
+
+  # Slack channel
+  slack:
+    enabled: false
+    webhook_url: https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+
+# Alert rules
+rules:
+  # Critical severity alerts
+  - name: Service Down
+    severity: critical
+    condition: service_up == 0
+    message: "Honeypot service {service} is down!"
+    cooldown_seconds: 300
+    channels: [log, console, email, slack]
+
+  - name: Pipeline Failure
+    severity: critical
+    condition: pipeline_error_rate > 0.5
+    message: "Data pipeline failure rate is {pipeline_error_rate:.1%}"
+    cooldown_seconds: 600
+    channels: [log, console, email, slack]
+
+  - name: Database Connection Failed
+    severity: critical
+    condition: database_connection_failed == true
+    message: "Database connection to {backend} failed: {error}"
+    cooldown_seconds: 300
+    channels: [log, console, email]
+
+  # High severity alerts
+  - name: High Auth Attempt Rate
+    severity: high
+    condition: auth_attempts_per_minute > 100
+    message: "High authentication attempt rate: {auth_attempts_per_minute} attempts/min from {source_ip}"
+    cooldown_seconds: 600
+    channels: [log, console, slack]
+
+  - name: Known Malicious IP
+    severity: high
+    condition: threat_intel_confidence > 90
+    message: "Known malicious IP detected: {source_ip} (confidence: {threat_intel_confidence}%)"
+    cooldown_seconds: 3600
+    channels: [log, console, email]
+
+  - name: Coordinated Attack Detected
+    severity: high
+    condition: coordinated_attack == true
+    message: "Coordinated attack detected: {attack_pattern} from {ip_count} IPs"
+    cooldown_seconds: 1800
+    channels: [log, console, slack]
+
+  - name: APT Indicators Detected
+    severity: high
+    condition: apt_indicators == true
+    message: "APT indicators detected: {indicators}"
+    cooldown_seconds: 3600
+    channels: [log, console, email, slack]
+
+  # Medium severity alerts
+  - name: Unusual Attack Spike
+    severity: medium
+    condition: attack_rate_increase > 200  # 200% increase
+    message: "Unusual attack spike detected: {attack_rate_increase}% increase in attacks"
+    cooldown_seconds: 1800
+    channels: [log, console]
+
+  - name: New Attack Pattern
+    severity: medium
+    condition: new_pattern_detected == true
+    message: "New attack pattern detected: {pattern_type}"
+    cooldown_seconds: 3600
+    channels: [log, console, slack]
+
+  - name: Enrichment API Failure
+    severity: medium
+    condition: enrichment_failure_rate > 0.3
+    message: "Enrichment API failure rate: {enrichment_failure_rate:.1%} for {provider}"
+    cooldown_seconds: 1800
+    channels: [log, console]
+
+  - name: High Queue Size
+    severity: medium
+    condition: queue_size > 1000
+    message: "Queue {queue_name} size is high: {queue_size} items"
+    cooldown_seconds: 900
+    channels: [log, console]
+
+  # Low severity alerts
+  - name: New Attacker IP
+    severity: low
+    condition: new_ip_detected == true
+    message: "New attacker IP detected: {source_ip} from {country}"
+    cooldown_seconds: 3600
+    channels: [log]
+
+  - name: Rare Command Detected
+    severity: low
+    condition: rare_command == true
+    message: "Rare command detected: {command} on {service}"
+    cooldown_seconds: 7200
+    channels: [log]
+
+  - name: Cache Hit Rate Low
+    severity: low
+    condition: cache_hit_rate < 0.5
+    message: "Cache hit rate is low: {cache_hit_rate:.1%} for {enricher}"
+    cooldown_seconds: 3600
+    channels: [log]
+
+  # Info severity alerts
+  - name: Daily Summary
+    severity: info
+    condition: daily_summary_time == true
+    message: "Daily summary: {total_attacks} attacks, {unique_ips} unique IPs"
+    cooldown_seconds: 86400  # Once per day
+    channels: [log, email]
+
+  - name: Service Restarted
+    severity: info
+    condition: service_restarted == true
+    message: "Service {service} was restarted"
+    cooldown_seconds: 300
+    channels: [log]
+
+# Alert routing rules
+routing:
+  # Route alerts by severity
+  severity_routing:
+    critical:
+      - email
+      - slack
+      - log
+    high:
+      - slack
+      - log
+    medium:
+      - slack
+      - log
+    low:
+      - log
+    info:
+      - log
+
+  # Route alerts by time (business hours vs. after hours)
+  time_routing:
+    business_hours:
+      start: "09:00"
+      end: "17:00"
+      days: [monday, tuesday, wednesday, thursday, friday]
+      channels: [console, slack, log]
+    after_hours:
+      channels: [email, log]  # Only email for critical after hours
+
+  # Alert aggregation
+  aggregation:
+    enabled: true
+    window_seconds: 300  # Aggregate alerts over 5 minutes
+    max_alerts_per_window: 10  # Maximum alerts to send per window
+
+# Alert thresholds (can be referenced in conditions)
+thresholds:
+  # Connection thresholds
+  max_connections_per_ip: 10
+  max_connections_per_minute: 100
+
+  # Authentication thresholds
+  max_auth_attempts_per_ip: 50
+  auth_attempts_per_minute_threshold: 100
+
+  # Attack thresholds
+  attack_rate_increase_threshold: 200  # Percent
+  coordinated_attack_ip_threshold: 10
+
+  # System thresholds
+  queue_size_warning: 1000
+  queue_size_critical: 5000
+  cache_hit_rate_warning: 0.5
+  enrichment_failure_rate_warning: 0.3
+  pipeline_error_rate_critical: 0.5
+
+# Testing mode
+testing:
+  enabled: false
+  test_alerts_on_startup: false
+  dry_run: false  # If true, alerts are logged but not sent

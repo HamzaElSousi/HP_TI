@@ -1,0 +1,238 @@
+# HP_TI Development Dependencies
+# Install with: pip install -r requirements-dev.txt
+
+# First, install all production dependencies
+-r requirements.txt
+
+# ============================================================================
+# Testing
+# ============================================================================
+
+# Testing framework
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+pytest-xdist==3.5.0  # Parallel test execution
+pytest-timeout==2.2.0
+pytest-benchmark==4.0.0
+
+# Test fixtures and data generation
+factory-boy==3.3.0
+faker==20.1.0
+freezegun==1.4.0  # Mock datetime
+
+# HTTP mocking
+responses==0.24.1
+requests-mock==1.11.0
+httpretty==1.1.7
+
+# Database testing
+pytest-postgresql==5.0.0
+
+# ============================================================================
+# Code Quality & Linting
+# ============================================================================
+
+# Code formatting
+black==23.12.1
+isort==5.13.2
+
+# Linting
+flake8==7.0.0
+flake8-docstrings==1.7.0
+flake8-bugbear==23.12.2
+flake8-comprehensions==3.14.0
+flake8-simplify==0.21.0
+pylint==3.0.3
+
+# Type checking
+mypy==1.7.1
+types-requests==2.31.0.10
+types-redis==4.6.0.11
+types-PyYAML==6.0.12.12
+
+# Security linting
+bandit==1.7.5
+safety==2.3.5
+
+# ============================================================================
+# Code Coverage & Metrics
+# ============================================================================
+
+# Coverage reporting
+coverage==7.3.4
+coverage-badge==1.1.0
+
+# Code complexity
+radon==6.0.1
+mccabe==0.7.0
+
+# ============================================================================
+# Documentation
+# ============================================================================
+
+# Documentation generation
+sphinx==7.2.6
+sphinx-rtd-theme==2.0.0
+sphinx-autodoc-typehints==1.25.2
+
+# API documentation
+sphinx-openapi==0.8.3
+
+# Markdown support in Sphinx
+myst-parser==2.0.0
+
+# ============================================================================
+# Development Tools
+# ============================================================================
+
+# Interactive debugger
+ipdb==0.13.13
+pdbpp==0.10.3
+
+# IPython for better REPL
+ipython==8.18.1
+
+# Jupyter (for data analysis)
+jupyter==1.0.0
+jupyterlab==4.0.9
+
+# ============================================================================
+# Pre-commit Hooks
+# ============================================================================
+
+# Pre-commit framework
+pre-commit==3.6.0
+
+# ============================================================================
+# Performance Profiling
+# ============================================================================
+
+# Profiling
+py-spy==0.3.14
+memory-profiler==0.61.0
+line-profiler==4.1.1
+
+# Load testing
+locust==2.20.0
+
+# ============================================================================
+# Database Tools
+# ============================================================================
+
+# Database inspection
+sqlalchemy-utils==0.41.1
+
+# Database diagram generation
+eralchemy2==1.3.8
+
+# ============================================================================
+# API Development (if building API)
+# ============================================================================
+
+# API framework (alternative to Flask)
+fastapi==0.108.0
+uvicorn[standard]==0.25.0
+
+# API testing
+httpie==3.2.2
+
+# OpenAPI/Swagger
+openapi-spec-validator==0.7.1
+
+# ============================================================================
+# Docker Development
+# ============================================================================
+
+# Docker SDK
+docker==7.0.0
+docker-compose==1.29.2
+
+# ============================================================================
+# CI/CD Tools
+# ============================================================================
+
+# Linting for CI configs
+yamllint==1.33.0
+
+# ============================================================================
+# Utilities
+# ============================================================================
+
+# Enhanced Python shell
+ptpython==3.0.25
+
+# Better diff tool
+diff-match-patch==20230430
+
+# File comparison
+deepdiff==6.7.1
+
+# JSON formatting
+jq==1.6.0
+
+# Environment management
+pip-tools==7.3.0
+
+# Dependency analysis
+pipdeptree==2.13.1
+
+# ============================================================================
+# Security Testing
+# ============================================================================
+
+# Penetration testing utilities
+scapy==2.5.0
+
+# SQL injection testing (for testing honeypot robustness)
+# Note: Only use in test environments!
+# sqlmap-dev==1.7
+
+# ============================================================================
+# Monitoring & Debugging
+# ============================================================================
+
+# Request debugging
+http-prompt==2.1.0
+
+# Log analysis
+loguru==0.7.2
+
+# ============================================================================
+# Version Management
+# ============================================================================
+
+# Semantic versioning
+semver==3.0.2
+
+# Changelog generation
+gitchangelog==3.0.4
+
+# ============================================================================
+# Data Analysis & Visualization
+# ============================================================================
+
+# Enhanced data analysis
+seaborn==0.13.0
+scipy==1.11.4
+
+# Network graph visualization
+networkx==3.2.1
+
+# ============================================================================
+# Automation
+# ============================================================================
+
+# Invoke for task automation
+invoke==2.2.0
+
+# Make-like task runner
+doit==0.36.0
+
+# ============================================================================
+# Notes
+# ============================================================================
+# Development dependencies should NOT be installed in production
+# Keep this file updated as new dev tools are added
+# Regularly update for security and new features

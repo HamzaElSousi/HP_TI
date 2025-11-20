@@ -1,0 +1,279 @@
+{
+  "dashboard": {
+    "title": "HP_TI - Pipeline Health Dashboard",
+    "tags": ["pipeline", "health", "performance"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Events Processed Rate",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(pipeline_events_processed_total[5m])) by (stage)",
+            "legendFormat": "{{stage}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "eps",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 20
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Event Processing Success Rate",
+        "type": "gauge",
+        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "100 * sum(rate(pipeline_events_processed_total[5m])) / (sum(rate(pipeline_events_processed_total[5m])) + sum(rate(pipeline_events_failed_total[5m])))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 90, "color": "yellow"},
+                {"value": 99, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Processing Duration by Stage",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(pipeline_processing_duration_seconds_bucket[5m])) by (stage, le))",
+            "legendFormat": "{{stage}} (p95)",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(pipeline_processing_duration_seconds_bucket[5m])) by (stage, le))",
+            "legendFormat": "{{stage}} (p50)",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth"
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Queue Sizes",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "pipeline_queue_size",
+            "legendFormat": "{{queue_name}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "min": 0,
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 30
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Storage Write Rate",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(pipeline_storage_writes_total[5m])) by (backend)",
+            "legendFormat": "{{backend}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "wps",
+            "custom": {
+              "drawStyle": "bars",
+              "fillOpacity": 70
+            }
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Storage Write Errors",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(pipeline_storage_write_errors_total[5m])) by (backend, error_type)",
+            "legendFormat": "{{backend}} - {{error_type}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "eps",
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 20
+            }
+          }
+        },
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [1],
+                "type": "gt"
+              },
+              "query": {
+                "params": ["A", "5m", "now"]
+              }
+            }
+          ],
+          "name": "Storage Write Errors Alert"
+        }
+      },
+      {
+        "id": 7,
+        "title": "Enrichment API Calls",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 24, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(pipeline_enrichment_api_calls_total[5m])) by (provider, status)",
+            "legendFormat": "{{provider}} ({{status}})",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "stack": "normal"
+            }
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Enrichment Cache Hit Rate",
+        "type": "gauge",
+        "gridPos": {"x": 12, "y": 24, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "100 * sum(rate(pipeline_enrichment_cache_hits_total[5m])) / (sum(rate(pipeline_enrichment_cache_hits_total[5m])) + sum(rate(pipeline_enrichment_cache_misses_total[5m])))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 50, "color": "yellow"},
+                {"value": 70, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "Database Connection Pool",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 32, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "pipeline_storage_connection_pool_size",
+            "legendFormat": "{{backend}} ({{state}})",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "stepAfter",
+              "fillOpacity": 30,
+              "stack": "normal"
+            }
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "Worker Activity",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 32, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "pipeline_workers_active",
+            "legendFormat": "{{worker_type}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "min": 0,
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "stepAfter"
+            }
+          }
+        }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "backend",
+          "type": "query",
+          "label": "Storage Backend",
+          "query": "label_values(pipeline_storage_writes_total, backend)",
+          "multi": true,
+          "includeAll": true
+        }
+      ]
+    }
+  }
+}

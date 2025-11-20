@@ -1,0 +1,75 @@
+# Prometheus Recording Rules for HP_TI
+# Pre-computed queries for frequently accessed metrics
+
+groups:
+  - name: honeypot_aggregations
+    interval: 1m
+    rules:
+      # Connection rate by service (5m average)
+      - record: honeypot:connection_rate:5m
+        expr: rate(honeypot_connections_total[5m])
+
+      # Total active sessions across all services
+      - record: honeypot:sessions_active:total
+        expr: sum(honeypot_sessions_active)
+
+      # Attack rate by type (5m average)
+      - record: honeypot:attack_rate_by_type:5m
+        expr: rate(honeypot_attacks_total[5m]) by (attack_type)
+
+      # Authentication failure rate (5m average)
+      - record: honeypot:auth_failure_rate:5m
+        expr: rate(honeypot_auth_attempts_total{success="false"}[5m])
+
+  - name: pipeline_aggregations
+    interval: 1m
+    rules:
+      # Event processing rate (5m average)
+      - record: pipeline:event_processing_rate:5m
+        expr: rate(pipeline_events_processed_total[5m])
+
+      # Event failure rate (5m average)
+      - record: pipeline:event_failure_rate:5m
+        expr: rate(pipeline_events_failed_total[5m])
+
+      # Storage write rate (5m average)
+      - record: pipeline:storage_write_rate:5m
+        expr: rate(pipeline_storage_writes_total[5m])
+
+      # Enrichment cache hit ratio
+      - record: pipeline:enrichment_cache_hit_ratio
+        expr: |
+          sum(rate(pipeline_enrichment_cache_hits_total[5m]))
+          /
+          (
+            sum(rate(pipeline_enrichment_cache_hits_total[5m]))
+            +
+            sum(rate(pipeline_enrichment_cache_misses_total[5m]))
+          )
+
+  - name: service_health_aggregations
+    interval: 1m
+    rules:
+      # Overall service availability
+      - record: honeypot:service_availability:percent
+        expr: |
+          100 * sum(honeypot_service_up) / count(honeypot_service_up)
+
+      # Total services up
+      - record: honeypot:services_up:count
+        expr: sum(honeypot_service_up)
+
+  - name: attack_statistics
+    interval: 5m
+    rules:
+      # Top 10 attacking countries (24h)
+      - record: honeypot:top_countries:24h
+        expr: |
+          topk(10,
+            sum(increase(honeypot_connections_by_country[24h])) by (country_code)
+          )
+
+      # Attack volume by service (1h)
+      - record: honeypot:attacks_by_service:1h
+        expr: |
+          sum(increase(honeypot_attacks_total[1h])) by (service)
